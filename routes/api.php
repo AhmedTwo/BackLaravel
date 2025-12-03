@@ -72,6 +72,14 @@ Route::middleware(['auth:sanctum', 'role:company,admin'])->group(
 Route::middleware(['auth:sanctum', 'role:candidat,admin'])->group(
     function () {
         Route::delete('/deleteRequest/{id}', [RequestController::class, 'deleteRequest']);
+
+        // NOUVEAU: Routes Favoris - Gérées par l'utilisateur connecté (candidat)
+        Route::post('/favorites/add/{offerId}', [FavorisController::class, 'addFavorite']);      // Ajouter aux favoris (utilise l'ID de l'offre)
+        Route::delete('/favorites/remove/{offerId}', [FavorisController::class, 'removeFavorite']); // Retirer des favoris (utilise l'ID de l'offre)
+        Route::get('/favorites', [FavorisController::class, 'getUserFavorites']);                // Afficher les offres favorites de l'utilisateur
+        Route::get('/favorites/check/{offerId}', [FavorisController::class, 'checkFavorite']);   // Vérifier l'état (pour l'affichage du cœur)
+
+        // Anciennes routes de favoris conservées par précaution si elles sont toujours dans FavorisController, mais non utilisées par le nouveau système
         Route::get('/favorisById/{id}', [FavorisController::class, 'getFavorisById']);
         Route::post('/addFavoris', [FavorisController::class, 'addFavoris']);
         Route::delete('/deleteFavoris/{id}', [FavorisController::class, 'deleteFavoris']);
@@ -93,17 +101,6 @@ Route::middleware(['auth:sanctum', 'role:candidat,company,admin'])->group(functi
 
     Route::post('/apply-offer', [ApplyOfferController::class, 'sendSummaryOffer']);
 });
-
-
-
-// l'url ici sera donc offer/addOffer
-// Route::prefix('offer')->group(function () {
-//     Route::post('/addOffer', [OfferController::class, 'addOffer']);
-// });
-
-// 2eme mhéthode
-// Route::get('/allRequest', [RequestController::class, 'getRequest'])
-//     ->middleware(['auth:sanctum', 'role:admin']);
 
 
 // Test d'envoi de mail

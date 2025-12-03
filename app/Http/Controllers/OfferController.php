@@ -35,8 +35,20 @@ class OfferController extends Controller
         ], 200); // code reponse 200 pour success
     }
 
-    public function getOfferById($id)
+    public function getOfferById(Request $requestParam, $id)
     {
+
+        // Je récupère l'utilisateur connecté via le jeton de la requête.
+        $user = $requestParam->user();
+
+        // Si l'utilisateur n'est **pas** connecté (pas de jeton valide)
+        if (!$user) {
+            // alors je renvoie une erreur **401** (Non autorisé).
+            return response()->json([
+                'success' => false,
+                'message' => 'Non autorisé. Veuillez vous connecter.'
+            ], 401);
+        }
 
         $offer = Offer::find($id);
 
@@ -54,10 +66,20 @@ class OfferController extends Controller
         ], 200);
     }
 
-    public function getOffersByCompany(Request $request)
+    public function getOffersByCompany(Request $requestParam)
     {
 
-        $user = $request->user(); // utilisateur connecté
+        // Je récupère l'utilisateur connecté via le jeton de la requête.
+        $user = $requestParam->user();
+
+        // Je vérifie si l'utilisateur est bien connecté.
+        if (!$user) {
+            // Si non, je renvoie une erreur **401** (Non autorisé).
+            return response()->json([
+                'success' => false,
+                'message' => 'Non autorisé. Veuillez vous connecter.'
+            ], 401);
+        }
 
         $companyId = $user->company_id;
 
@@ -72,6 +94,18 @@ class OfferController extends Controller
     public function updateOffer(Request $requestParam, $id)
     {
 
+        // Je récupère l'utilisateur connecté via le jeton de la requête.
+        $user = $requestParam->user();
+
+        // Si l'utilisateur n'est **pas** connecté (pas de jeton valide)
+        if (!$user) {
+            // alors je renvoie une erreur **401** (Non autorisé).
+            return response()->json([
+                'success' => false,
+                'message' => 'Non autorisé. Veuillez vous connecter.'
+            ], 401);
+        }
+
         $offer = Offer::find($id);
 
         if (!$offer) {
@@ -79,6 +113,15 @@ class OfferController extends Controller
                 'success' => false,
                 'message' => 'Offre non trouvée',
             ], 404);
+        }
+
+        // SÉCURITÉ : Je dois m'assurer que **seul le créateur**
+        // de l'offre puisse la modifier.
+        if ($offer->id_company  !== $user->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => "Accès refusé : vous n'êtes pas autorisé à modifier cette offre."
+            ], 403);
         }
 
         $validatedData = $requestParam->validate([
@@ -216,9 +259,21 @@ class OfferController extends Controller
         }
     }
 
-    public function deleteOffer($id)
+    public function deleteOffer(Request $requestParam, $id)
     {
+        // Je récupère l'utilisateur **connecté** pour vérifier les droits.
+        $user = $requestParam->user();
 
+        // si différent de l'utilisateur **connecté** 
+        if (!$user) {
+            // alors je renvoie une erreur **401** (Non autorisé).
+            return response()->json([
+                'success' => false,
+                'message' => 'Non autorisé. Veuillez vous connecter.'
+            ], 401);
+        }
+
+        // Je recherche l'offre à supprimer par son ID.
         $offer = Offer::find($id);
 
         if (!$offer) {
@@ -226,6 +281,14 @@ class OfferController extends Controller
                 'succes' => false,
                 'message' => 'Offre non trouvée, impossible de la supprimer',
             ], 404);
+        }
+
+        // SÉCURITÉ : Je vérifie si l'utilisateur connecté est bien le créateur de l'offre avant de la supprimer.
+        if ($offer->id_company !== $user->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => "Accès refusé : vous n'êtes pas autorisé à supprimer cette offre."
+            ], 403);
         }
 
         try {
