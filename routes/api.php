@@ -46,11 +46,14 @@ Route::middleware(['guest'])->group(
     }
 );
 
+// Rôles : admin
 Route::middleware(['auth:sanctum', 'role:admin'])->group(
     function () {
         Route::get('/allUser', [UserController::class, 'getUser']);
         Route::get('/userByRole/{role}', [UserController::class, 'getUserByRole']);
         Route::post('/deleteUser/{id}', [UserController::class, 'deleteUser']);
+
+        Route::patch('/toggleRequestStatus/{id}', [RequestController::class, 'toggleRequest']);
     }
 );
 
@@ -71,9 +74,8 @@ Route::middleware(['auth:sanctum', 'role:company,admin'])->group(
 // Rôles : candidat, admin
 Route::middleware(['auth:sanctum', 'role:candidat,admin'])->group(
     function () {
-        Route::delete('/deleteRequest/{id}', [RequestController::class, 'deleteRequest']);
 
-        // NOUVEAU: Routes Favoris - Gérées par l'utilisateur connecté (candidat)
+        // Routes Favoris - Gérées par l'utilisateur connecté (candidat)
         Route::post('/favorites/add/{offerId}', [FavorisController::class, 'addFavorite']);      // Ajouter aux favoris (utilise l'ID de l'offre)
         Route::delete('/favorites/remove/{offerId}', [FavorisController::class, 'removeFavorite']); // Retirer des favoris (utilise l'ID de l'offre)
         Route::get('/favorites', [FavorisController::class, 'getUserFavorites']);                // Afficher les offres favorites de l'utilisateur
@@ -83,9 +85,12 @@ Route::middleware(['auth:sanctum', 'role:candidat,admin'])->group(
         Route::get('/favorisById/{id}', [FavorisController::class, 'getFavorisById']);
         Route::post('/addFavoris', [FavorisController::class, 'addFavoris']);
         Route::delete('/deleteFavoris/{id}', [FavorisController::class, 'deleteFavoris']);
+
+        Route::post('/apply-offer', [ApplyOfferController::class, 'sendSummaryOffer']);
     }
 );
 
+// Rôles : candidat, company, admin
 Route::middleware(['auth:sanctum', 'role:candidat,company,admin'])->group(function () {
 
     Route::get('/offerById/{id}', [OfferController::class, 'getOfferById']);
@@ -98,13 +103,11 @@ Route::middleware(['auth:sanctum', 'role:candidat,company,admin'])->group(functi
     Route::get('/requestsByUser/{userId}', [RequestController::class, 'getRequestsByUser']);
     Route::post('/requestUpdate/{id}', [RequestController::class, 'updateRequest']);
     Route::delete('/deleteRequest/{id}', [RequestController::class, 'deleteRequest']);
-
-    Route::post('/apply-offer', [ApplyOfferController::class, 'sendSummaryOffer']);
 });
 
 
 // Test d'envoi de mail
-Route::get('/test-env', function () {
+Route::get('/test_env', function () {
     return [
         'MAIL_USERNAME' => env('MAIL_USERNAME'),
         'MAIL_PASSWORD' => env('MAIL_PASSWORD')

@@ -249,54 +249,93 @@ class RequestController extends Controller
     // --- Fonction 6 : Supprimer une demande ---
     public function deleteRequest(Request $requestParam, $id)
     {
-        // Je récupère l'utilisateur **connecté** pour vérifier les droits.
+        // Vérifier si l'utilisateur est connecté
         $user = $requestParam->user();
-
-        // si différent de l'utilisateur **connecté** 
         if (!$user) {
-            // alors je renvoie une erreur **401** (Non autorisé).
             return response()->json([
                 'success' => false,
-                'message' => 'Non autorisé. Veuillez vous connecter.'
+                'message' => 'Non autorisé.'
             ], 401);
         }
 
-        // Je recherche la demande à supprimer par son ID.
+        // Rechercher la demande par son ID
         $request = RequestModel::find($id);
 
         // Si la demande n'existe pas
         if (!$request) {
-            // alors je renvoie une erreur **404** (Non trouvée).
             return response()->json([
                 'success' => false,
                 'message' => 'Demande non trouvée',
             ], 404);
         }
 
-        // SÉCURITÉ : Je vérifie si l'utilisateur connecté est bien le créateur de la demande avant de la supprimer.
-        if ($request->user_id !== $user->id) {
+        // SÉCURITÉ : Le candidat peut supprimer sa propre demande, l'admin peut supprimer toutes les demandes.
+        if ($user->role !== 'admin' && $request->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => "Accès refusé : vous n'êtes pas autorisé à supprimer cette demande."
             ], 403);
         }
 
-        // J'utilise un bloc `try-catch` pour gérer les erreurs de suppression.
+        // Suppression sécurisée
         try {
-            // Je supprime la demande de sa table das ma base de données.
             $request->delete();
 
-            // Je retourne un succès avec un statut **200** (OK).
             return response()->json([
                 'success' => true,
-                'message' => 'Demande supprimé avec succès.'
+                'message' => 'Demande supprimée avec succès.'
             ], 200);
         } catch (\Exception $e) {
-            // Si la suppression échoue, je retourne une erreur **500**.
             return response()->json([
-                'message' => 'Echec de la suppression de la demande',
+                'message' => 'Échec de la suppression de la demande',
                 'error'   => $e->getMessage()
             ], 500);
         }
+    }
+
+
+    // --- Fonction 7 : Toggle une demande ---
+    public function toggleRequest(Request $requestParam, $id)
+    {
+
+        // on verifie si l'utilisateur est bien connecté
+        $user = $requestParam->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Non autorisé.'
+            ], 401);
+        }
+
+        // on verifie si l'utilisateur a bien le rôle ADMIN
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => "Accès refusé : vous n'êtes pas autorisé à modifier cette demande."
+            ], 403);
+        }
+
+        // Je recherche la demande à toggle par son ID.
+        $request = RequestModel::find($id);
+        if (!$request) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Demande non trouvée.'
+            ], 404);
+        }
+
+        // on determine le nouveau statut
+        // vu que le statut de base est "En_cours", on le met à "validée"
+        $newStatus = ($request->status === 'En Attente') ? 'Validée' : 'En Attente';
+
+        // on met à jour le statut dans la base de données
+        $request->status = $newStatus;
+        $request->save();
+
+        // on retourne une réponse de succès
+        return response()->json([
+            'message' => 'Statut de la demande mis à jour avec succès.',
+            'new_status' => $newStatus
+        ]);
     }
 }
