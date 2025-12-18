@@ -38,6 +38,8 @@ return new class extends Migration
             $table->unique(['offer_id', 'user_id']);
 
             $table->timestamps(); // Ajoute les colonnes created_at et updated_at
+
+            $table->text('motivation_text');
         });
     }
 

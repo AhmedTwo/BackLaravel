@@ -121,6 +121,7 @@ class SendIdentifiantForgetController extends Controller
             Voici des nouveaux identifiants de connexion pour votre compte :<br><br>
             <strong>Email (le même) :</strong> {$login}<br>
             <strong>Mot de passe :</strong> {$password}<br><br>
+            Je vous invite à vous rendre sur votre page profil afin de modifier celui-ci !<br><br>
             Cordialement,<br><br>L'équipe Portal Job.
         ";
         $this->sendSmtpMail($toEmail, $subject, $body);
