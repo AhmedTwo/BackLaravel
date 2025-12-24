@@ -51,7 +51,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(
     function () {
         Route::get('/allUser', [UserController::class, 'getUser']);
         Route::get('/userByRole/{role}', [UserController::class, 'getUserByRole']);
-        Route::post('/deleteUser/{id}', [UserController::class, 'deleteUser']);
+        Route::delete('/deleteUser/{id}', [UserController::class, 'deleteUser']);
 
         Route::patch('/toggleRequestStatus/{id}', [RequestController::class, 'toggleRequest']);
     }
