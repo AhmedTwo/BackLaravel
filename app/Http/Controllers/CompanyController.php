@@ -205,9 +205,11 @@ class CompanyController extends Controller
         }
     }
 
-    public function deleteCompany($id)
+    public function deleteCompany(Request $requestParam, $id)
     {
 
+        // Je récupère l'utilisateur **connecté** pour vérifier les droits.
+        $user = $requestParam->user();
         $company = Company::find($id);
 
         if (!$company) {
@@ -215,6 +217,14 @@ class CompanyController extends Controller
                 'succes' => false,
                 'message' => 'Société non trouvée, impossible de la supprimer',
             ], 404);
+        }
+
+        // SÉCURITÉ : Je vérifie si l'utilisateur connecté est bien l'admin avant de la supprimer.
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => "Accès refusé : vous n'êtes pas autorisé à supprimer cette offre."
+            ], 403);
         }
 
         try {

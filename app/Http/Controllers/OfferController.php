@@ -59,6 +59,14 @@ class OfferController extends Controller
             ], 404);
         }
 
+        // SÉCURITÉ : Je m'assure que **seul le créateur** de l'offre ou l'admin puisse la modifier.
+        if ($user->role !== 'admin' && $offer->id_company !== $user->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => "Accès refusé : vous n'êtes pas autorisé à modifier cette offre."
+            ], 403);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Offre trouvée',
@@ -115,9 +123,8 @@ class OfferController extends Controller
             ], 404);
         }
 
-        // SÉCURITÉ : Je dois m'assurer que **seul le créateur**
-        // de l'offre puisse la modifier.
-        if ($offer->id_company  !== $user->company_id) {
+        // SÉCURITÉ : Je m'assure que **seul le créateur** de l'offre ou l'admin puisse la modifier.
+        if ($user->role !== 'admin' && $offer->id_company !== $user->company_id) {
             return response()->json([
                 'success' => false,
                 'message' => "Accès refusé : vous n'êtes pas autorisé à modifier cette offre."
@@ -283,8 +290,8 @@ class OfferController extends Controller
             ], 404);
         }
 
-        // SÉCURITÉ : Je vérifie si l'utilisateur connecté est bien le créateur de l'offre avant de la supprimer.
-        if ($offer->id_company !== $user->company_id) {
+        // SÉCURITÉ : Je vérifie si l'utilisateur connecté est bien le créateur de l'offre ou l'admin avant de la supprimer.
+        if ($user->role !== 'admin' && $offer->id_company !== $user->company_id) {
             return response()->json([
                 'success' => false,
                 'message' => "Accès refusé : vous n'êtes pas autorisé à supprimer cette offre."

@@ -75,6 +75,8 @@ class ApplyOfferController extends Controller
                 'motivation_text' => $request->motivation_text, // Récupération de la donnée validée
             ]);
 
+            Log::info('Motivation stockée : ' . $apply->motivation_text);
+
             // Incrémentation du champ `participants_count` de l'offre de +1.
             $offer->increment('participants_count');
 
@@ -87,10 +89,9 @@ class ApplyOfferController extends Controller
             $this->sendMailToCandidate($user, $offer);
 
             // Appel de la méthode pour envoyer l'e-mail de notification à l'entreprise.
-            $this->sendMailToCompany($user, $offer, $company);
+            $this->sendMailToCompany($user, $offer, $company, $apply);
 
             // --- Étape 4: Réponse HTTP de Succès ---
-
             // Renvoyer une réponse JSON de succès (code 200 OK) avec un message et l'ID de la nouvelle candidature.
             return response()->json([
                 'success' => true,
@@ -116,11 +117,11 @@ class ApplyOfferController extends Controller
      * C'est la méthode technique de bas niveau pour l'envoi.
      * @return bool Vrai si l'envoi a réussi, Faux sinon.
      */
-    protected function sendSmtpMail(string $toEmail, string $subject, string $body): bool
+    protected function sendSmtpMail(string $toEmail, string $subject, string $body, ?string $attachmentPath = null): bool
     {
         // Instanciation de la classe PHPMailer. `true` active les exceptions.
         $mail = new PHPMailer(true);
-        $mail->SMTPDebug = 2; // ca va écrire exactement pourquoi l’email ne part pas dans storage/logs/laravel.log.
+        $mail->SMTPDebug = 0; // ca va écrire exactement pourquoi l’email ne part pas dans storage/logs/laravel.log.
 
         // Récupération des identifiants SMTP à partir des variables d'environnement (.env).
         $auth_email = env('MAIL_USERNAME');
@@ -161,6 +162,10 @@ class ApplyOfferController extends Controller
 
             Log::info("PHPMailer prêt à envoyer à: " . $toEmail);
 
+            if ($attachmentPath && file_exists($attachmentPath)) {
+                $mail->addAttachment($attachmentPath, 'CV_' . time() . '.pdf');
+            }
+
             // Envoi de l'e-mail.
             $mail->send();
             return true;
@@ -189,7 +194,7 @@ class ApplyOfferController extends Controller
         <strong>Société :</strong> {$offer->company->name}<br>
         <strong>Date de candidature :</strong> " . now()->format('d/m/Y H:i') . "<br><br>
         Votre dossier est en cours d'examen. Vous serez contacté(e) directement par l'entreprise si votre profil est retenu.<br>
-        Cordialement,<br>L'équipe Portal Job.
+        Cordialement,<br><br>L'équipe Portal Job.
         ";
 
         $result = $this->sendSmtpMail($user->email, $subject, $body);
@@ -202,7 +207,7 @@ class ApplyOfferController extends Controller
     /**
      * Construit et envoie l'e-mail de notification à l'entreprise pour l'informer d'une nouvelle candidature.
      */
-    protected function sendMailToCompany($user, $offer, $company)
+    protected function sendMailToCompany($user, $offer, $company, $apply)
     {
         $companyEmail = $company->email_company;
 
@@ -215,13 +220,27 @@ class ApplyOfferController extends Controller
         Cher recruteur,<br><br>
         Un nouveau candidat a postulé :<br><br>
         <strong>Offre :</strong> {$offer->title}<br>
+        <strong>Date de candidature :</strong> " . now()->format('d/m/Y H:i') . "<br><br>
         <strong>Nom :</strong> {$user->prenom} {$user->nom}<br>
+        <strong>Qualification :</strong> {$user->qualification}<br>
         <strong>Email :</strong> {$user->email}<br>
         <strong>Téléphone :</strong> {$user->telephone}<br><br>
+
+        <strong>Motivation du candidat :</strong><br> {$apply->motivation_text}<br><br>
+
+        Le <strong>CV</strong> est joint à cet email.<br><br>
+
         Cordialement,<br>L'équipe Portal Job.
         ";
 
-        $result = $this->sendSmtpMail($companyEmail, $subject, $body);
+        $cvPath = storage_path('app/public/' . $user->cv_pdf);
+
+        $result = $this->sendSmtpMail(
+            $companyEmail,
+            $subject,
+            $body,
+            $cvPath
+        );
 
         Log::info("Mail entreprise envoyé ? " . ($result ? 'OUI' : 'NON'));
 

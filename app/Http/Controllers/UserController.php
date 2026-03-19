@@ -150,6 +150,17 @@ class UserController extends Controller
             }
         }
 
+        // Gestion du cv
+        if ($requestParam->hasFile('cv_pdf')) {
+            $cvPath = $requestParam->file('cv_pdf')->store('cv', 'public');
+            $validatedData['cv_pdf'] = $cvPath;
+
+            // Supprimer l'ancien cv si elle existe
+            if ($user->cv_pdf && Storage::disk('public')->exists($user->cv_pdf)) {
+                Storage::disk('public')->delete($user->cv_pdf);
+            }
+        }
+
         if ($requestParam->filled('current_password')) {
             // Vérifier le mdp actuel
             if (!Hash::check($requestParam->current_password, $user->password)) {

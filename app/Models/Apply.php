@@ -25,6 +25,7 @@ class Apply extends Model
         'offer_id',
         'user_id',
         'status', // 'pending' par défaut dans la migration
+        'motivation_text',
     ];
 
     /**
