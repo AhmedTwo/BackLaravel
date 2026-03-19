@@ -15,8 +15,8 @@ return new class extends Migration
     {
         Schema::create('favoris', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->references('id')->on('user');
-            $table->foreignId('offer_id')->references('id')->on('offer');
+            $table->foreignId('user_id')->references('id')->on('users');
+            $table->foreignId('offer_id')->references('id')->on('offers');
             $table->timestamps();
         });
     }

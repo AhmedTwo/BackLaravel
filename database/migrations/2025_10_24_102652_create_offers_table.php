@@ -26,7 +26,7 @@ return new class extends Migration
             $table->integer('participants_count')->default(0);
             $table->string('image_url')->default('/public/assets/images/offreDefault.jpeg');
             $table->timestamps();
-            $table->foreignId('id_company')->references('id')->on('company');
+            $table->foreignId('id_company')->references('id')->on('companys');
         });
     }
 

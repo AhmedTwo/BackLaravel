@@ -17,10 +17,10 @@ return new class extends Migration
             $table->id();
             $table->string('title')->nullable();
             $table->string('description')->nullable();
-            $table->enum('type', ['RECLAMATION', 'DEMANDES', 'SUPPRESION', 'MODIFICATION']);
+            $table->enum('type', ['RECLAMATION', 'DEMANDES', 'SUPPRESSION', 'MODIFICATION']);
             $table->string('status')->default('en_cours');
             $table->timestamps();
-            $table->foreignId('user_id')->references('id')->on('user'); // clé etragere
+            $table->foreignId('user_id')->references('id')->on('users'); // clé etragere
         });
     }
 
