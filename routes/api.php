@@ -21,6 +21,12 @@ use Illuminate\Support\Facades\Mail;
 |--------------------------------------------------------------------------
 */
 
+Route::get('/clear-cache', function() {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    return "Cache vidé !";
+});
+
 Route::get('/test', function () {
     return response()->json(['message' => 'OK']);
 });
