@@ -121,12 +121,11 @@ class UserController extends Controller
             $validatedData['disponibilite'] = filter_var($requestParam->disponibilite, FILTER_VALIDATE_BOOLEAN);
         }
 
-        // 4. Gestion de la photo (Supabase)
+        // 4. Gestion de la photo
         if ($requestParam->hasFile('photo')) {
             $file = $requestParam->file('photo');
             $fileName = time() . '_photo_' . $id . '.' . $file->getClientOriginalExtension();
             
-            // Upload vers Supabase Storage
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . env('SUPABASE_KEY'),
                 'Content-Type'  => $file->getMimeType(),
@@ -134,8 +133,10 @@ class UserController extends Controller
             ->post(env('SUPABASE_URL') . '/storage/v1/object/avatars/' . $fileName);
 
             if ($response->successful()) {
-                // On stocke l'URL directe dans la base de données
                 $validatedData['photo'] = env('SUPABASE_URL') . '/storage/v1/object/public/avatars/' . $fileName;
+            } else {
+                // AJOUTE CETTE LIGNE POUR VOIR L'ERREUR DANS RENDER
+                Log::error("Echec Upload Photo Supabase: " . $response->body());
             }
         }
 
@@ -152,6 +153,9 @@ class UserController extends Controller
 
             if ($response->successful()) {
                 $validatedData['cv_pdf'] = env('SUPABASE_URL') . '/storage/v1/object/public/documents/' . $fileName;
+            } else {
+                // AJOUTE CETTE LIGNE POUR VOIR L'ERREUR DANS RENDER
+                Log::error("Echec Upload CV Supabase: " . $response->body());
             }
         }
 
