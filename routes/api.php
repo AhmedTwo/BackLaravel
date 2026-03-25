@@ -102,7 +102,7 @@ Route::middleware(['auth:sanctum', 'role:candidat,company,admin'])->group(functi
     Route::get('/offerById/{id}', [OfferController::class, 'getOfferById']);
 
     Route::get('/userById/{id}', [UserController::class, 'getUserById']);
-    Route::post('/userUpdate/{id}', [UserController::class, 'updateUser']);
+    Route::put('/userUpdate/{id}', [UserController::class, 'updateUser']);
 
     Route::post('/addRequest', [RequestController::class, 'addRequest']);
     Route::get('/requestById/{id}', [RequestController::class, 'getRequestById']);
