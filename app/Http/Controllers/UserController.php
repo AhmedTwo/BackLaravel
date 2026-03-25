@@ -120,23 +120,37 @@ class UserController extends Controller
             $validatedData['disponibilite'] = filter_var($requestParam->disponibilite, FILTER_VALIDATE_BOOLEAN);
         }
 
-        // 4. Gestion de la photo
+        // 4. Gestion de la photo (Supabase)
         if ($requestParam->hasFile('photo')) {
-            $photoPath = $requestParam->file('photo')->store('photo_user', 'public');
-            $validatedData['photo'] = $photoPath;
+            $file = $requestParam->file('photo');
+            $fileName = time() . '_photo_' . $id . '.' . $file->getClientOriginalExtension();
+            
+            // Upload vers Supabase Storage
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('SUPABASE_KEY'),
+                'Content-Type'  => $file->getMimeType(),
+            ])->withBody(file_get_contents($file), $file->getMimeType())
+            ->post(env('SUPABASE_URL') . '/storage/v1/object/avatars/' . $fileName);
 
-            if ($user->photo && Storage::disk('public')->exists($user->photo)) {
-                Storage::disk('public')->delete($user->photo);
+            if ($response->successful()) {
+                // On stocke l'URL directe dans la base de données
+                $validatedData['photo'] = env('SUPABASE_URL') . '/storage/v1/object/public/avatars/' . $fileName;
             }
         }
 
-        // 5. Gestion du CV
+        // 5. Gestion du CV (Supabase)
         if ($requestParam->hasFile('cv_pdf')) {
-            $cvPath = $requestParam->file('cv_pdf')->store('cv', 'public');
-            $validatedData['cv_pdf'] = $cvPath;
+            $file = $requestParam->file('cv_pdf');
+            $fileName = time() . '_cv_' . $id . '.pdf';
+            
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('SUPABASE_KEY'),
+                'Content-Type'  => 'application/pdf',
+            ])->withBody(file_get_contents($file), 'application/pdf')
+            ->post(env('SUPABASE_URL') . '/storage/v1/object/documents/' . $fileName);
 
-            if ($user->cv_pdf && Storage::disk('public')->exists($user->cv_pdf)) {
-                Storage::disk('public')->delete($user->cv_pdf);
+            if ($response->successful()) {
+                $validatedData['cv_pdf'] = env('SUPABASE_URL') . '/storage/v1/object/public/documents/' . $fileName;
             }
         }
 
