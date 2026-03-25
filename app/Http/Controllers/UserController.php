@@ -93,32 +93,26 @@ class UserController extends Controller
         // Log pour debug (Vérifie tes logs Render si ça bloque encore)
         Log::info('Données reçues dans updateUser:', $requestParam->all());
 
-        // 2. Validation (Note l'ajout de 'nullable' sur les champs optionnels)
+        // 2. Validation ultra-souple
         $validatedData = $requestParam->validate([
-            'nom'              => 'sometimes|string|max:255',
-            'prenom'           => 'sometimes|string|max:255',
+            'nom'              => 'nullable|string|max:255',
+            'prenom'           => 'nullable|string|max:255',
             'email'            => [
-                'sometimes',
+                'nullable',
                 'email',
                 'max:255',
                 Rule::unique('users')->ignore($id),
             ],
-            'telephone'        => 'sometimes|nullable|string|max:20',
-            'ville'            => 'sometimes|nullable|string|max:50',
-            'code_postal'      => 'sometimes|nullable|string|max:20',
-            'qualification'    => 'sometimes|nullable|string|max:255',
-            'preference'       => 'sometimes|nullable|string|max:255',
-            'disponibilite'    => 'sometimes|nullable', // On accepte tout, on gère le cast après
-            'photo'            => 'sometimes|nullable|image|max:2048',
-            'cv_pdf'           => 'sometimes|nullable|file|mimes:pdf|max:10240',
+            'telephone'        => 'nullable|string|max:20',
+            'ville'            => 'nullable|string|max:50',
+            'code_postal'      => 'nullable|string|max:20',
+            'qualification'    => 'nullable|string|max:255',
+            'preference'       => 'nullable|string|max:255',
+            'disponibilite'    => 'nullable', 
+            'photo'            => 'nullable', // On accepte tout ici, on gère le fichier après
+            'cv_pdf'           => 'nullable', // On accepte tout ici, on gère le fichier après
             'current_password' => 'nullable|string',
             'new_password'     => 'nullable|string|min:8|confirmed',
-        ], [
-            'email.unique'          => 'Cette adresse e-mail est déjà utilisée.',
-            'new_password.confirmed' => 'La confirmation du nouveau mot de passe ne correspond pas.',
-            'new_password.min'       => 'Le nouveau mot de passe doit faire au moins 8 caractères.',
-            'photo.image'           => 'Le fichier doit être une image.',
-            'cv_pdf.mimes'          => 'Le CV doit être un fichier PDF.',
         ]);
 
         // 3. Gestion de la disponibilité (Cast en boolean pour la BDD)
