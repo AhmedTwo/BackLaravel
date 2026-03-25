@@ -80,12 +80,9 @@ class UserController extends Controller
 
     public function updateUser(Request $requestParam, $id)
     {
-        // on trouve l'utilisateur
+        // 1. Trouver l'utilisateur
         $user = User::find($id);
 
-        Log::info('Données reçues dans updateUser:', $requestParam->all());
-
-        // on verifie s'il existe
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -93,76 +90,64 @@ class UserController extends Controller
             ], 404);
         }
 
-        // on valide les données reçues
+        // Log pour debug (Vérifie tes logs Render si ça bloque encore)
+        Log::info('Données reçues dans updateUser:', $requestParam->all());
+
+        // 2. Validation (Note l'ajout de 'nullable' sur les champs optionnels)
         $validatedData = $requestParam->validate([
-            'nom' => 'sometimes|string|max:255',
-            'prenom' => 'sometimes|string|max:255',
-            // NOUVEAU: Règle d'unicité qui ignore l'utilisateur $id pour éviter l'erreur 422
-            'email'         => [
+            'nom'              => 'sometimes|string|max:255',
+            'prenom'           => 'sometimes|string|max:255',
+            'email'            => [
                 'sometimes',
                 'email',
                 'max:255',
                 Rule::unique('users')->ignore($id),
             ],
-            'telephone' => 'sometimes|string|max:20',
-            'ville' => 'sometimes|string|max:50',
-            'code_postal' => 'sometimes|string|max:20',
-            'cv_pdf' => 'sometimes|file|mimes:pdf|max:10240',
-            'qualification' => 'sometimes|string|max:255',
-            'preference' => 'sometimes|string|max:255',
-            'disponibilite' => 'sometimes|boolean',
-            'photo' => 'sometimes|file|mimes:jpeg,png,jpg,webp|max:2048',
+            'telephone'        => 'sometimes|nullable|string|max:20',
+            'ville'            => 'sometimes|nullable|string|max:50',
+            'code_postal'      => 'sometimes|nullable|string|max:20',
+            'qualification'    => 'sometimes|nullable|string|max:255',
+            'preference'       => 'sometimes|nullable|string|max:255',
+            'disponibilite'    => 'sometimes|nullable', // On accepte tout, on gère le cast après
+            'photo'            => 'sometimes|nullable|image|max:2048',
+            'cv_pdf'           => 'sometimes|nullable|file|mimes:pdf|max:10240',
             'current_password' => 'nullable|string',
-            'new_password' => 'nullable|string|min:8|confirmed',
+            'new_password'     => 'nullable|string|min:8|confirmed',
         ], [
-            // Messages personnalisés
-            'nom.string'        => 'Le nom doit être une chaîne de caractères.',
-            'nom.max'           => 'Le nom ne peut pas dépasser 255 caractères.',
-            'prenom.string'     => 'Le prénom doit être une chaîne de caractères.',
-            'prenom.max'        => 'Le prénom ne peut pas dépasser 255 caractères.',
-            'telephone.string'  => 'Le numéro de téléphone doit être une chaîne de caractères.',
-            'telephone.max'     => 'Le numéro de téléphone ne peut pas dépasser 20 caractères.',
-            'ville.string'      => 'La ville doit être une chaîne de caractères.',
-            'ville.max'         => 'La ville ne peut pas dépasser 50 caractères.',
-            'code_postal.string' => 'Le code postal doit être une chaîne de caractères.',
-            'code_postal.max'   => 'Le code postal ne peut pas dépasser 20 caractères.',
-            'cv_pdf.string'     => 'Le chemin du CV doit être une chaîne de caractères.',
-            'cv_pdf.max'        => 'Le chemin du CV ne peut pas dépasser 255 caractères.',
-            'qualification.string' => 'La qualification doit être une chaîne de caractères.',
-            'qualification.max'    => 'La qualification ne peut pas dépasser 255 caractères.',
-            'preference.string' => 'La préférence doit être une chaîne de caractères.',
-            'preference.max'    => 'La préférence ne peut pas dépasser 255 caractères.',
-            'photo.file'        => 'L\'image doit être un fichier.',
-            'photo.mimes'       => 'L\'image doit être au format jpeg, png, jpg ou webp.',
-            'photo.max'         => 'L\'image est trop volumineuse (2 Mo maximum).',
-            'email.unique'      => 'Cette adresse e-mail est déjà utilisée par un autre compte.',
-            'disponibilite.boolean' => 'La disponibilité doit être une valeur Vrai ou Faux.',
+            'email.unique'          => 'Cette adresse e-mail est déjà utilisée.',
+            'new_password.confirmed' => 'La confirmation du nouveau mot de passe ne correspond pas.',
+            'new_password.min'       => 'Le nouveau mot de passe doit faire au moins 8 caractères.',
+            'photo.image'           => 'Le fichier doit être une image.',
+            'cv_pdf.mimes'          => 'Le CV doit être un fichier PDF.',
         ]);
 
-        // Gestion de la photo
+        // 3. Gestion de la disponibilité (Cast en boolean pour la BDD)
+        if ($requestParam->has('disponibilite')) {
+            $validatedData['disponibilite'] = filter_var($requestParam->disponibilite, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // 4. Gestion de la photo
         if ($requestParam->hasFile('photo')) {
             $photoPath = $requestParam->file('photo')->store('photo_user', 'public');
             $validatedData['photo'] = $photoPath;
 
-            // Supprimer l'ancienne photo si elle existe
             if ($user->photo && Storage::disk('public')->exists($user->photo)) {
                 Storage::disk('public')->delete($user->photo);
             }
         }
 
-        // Gestion du cv
+        // 5. Gestion du CV
         if ($requestParam->hasFile('cv_pdf')) {
             $cvPath = $requestParam->file('cv_pdf')->store('cv', 'public');
             $validatedData['cv_pdf'] = $cvPath;
 
-            // Supprimer l'ancien cv si elle existe
             if ($user->cv_pdf && Storage::disk('public')->exists($user->cv_pdf)) {
                 Storage::disk('public')->delete($user->cv_pdf);
             }
         }
 
+        // 6. Gestion du mot de passe
         if ($requestParam->filled('current_password')) {
-            // Vérifier le mdp actuel
             if (!Hash::check($requestParam->current_password, $user->password)) {
                 return response()->json([
                     'success' => false,
@@ -170,7 +155,6 @@ class UserController extends Controller
                 ], 403);
             }
 
-            // Vérifier nouveau mdp + confirmation
             if (!$requestParam->filled('new_password')) {
                 return response()->json([
                     'success' => false,
@@ -178,18 +162,20 @@ class UserController extends Controller
                 ], 422);
             }
 
-            // Mise à jour sécurisée
             $validatedData['password'] = Hash::make($requestParam->new_password);
         }
 
-        // on met à jour l'utilisateur
+        // 7. Mise à jour (On enlève les champs password de $validatedData s'ils ne sont pas traités)
+        unset($validatedData['current_password']);
+        unset($validatedData['new_password']);
+        unset($validatedData['new_password_confirmation']);
+
         $user->update($validatedData);
 
-        // on retourne la réponse
         return response()->json([
             'success' => true,
-            'message' => 'Utilisateur trouvé et mis à jour avec succès',
-            'data' => $user, // utilisateur mis à jour
+            'message' => 'Profil mis à jour avec succès',
+            'data'    => $user,
         ], 200);
     }
 
