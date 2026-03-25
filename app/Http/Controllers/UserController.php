@@ -141,7 +141,10 @@ class UserController extends Controller
         }
 
         // 6. Gestion du mot de passe
-        if ($requestParam->filled('current_password')) {
+        // On ne traite le changement QUE si l'utilisateur a rempli les DEUX champs
+        if ($requestParam->filled('current_password') && $requestParam->filled('new_password')) {
+            
+            // Vérifier si le mot de passe actuel correspond
             if (!Hash::check($requestParam->current_password, $user->password)) {
                 return response()->json([
                     'success' => false,
@@ -149,14 +152,15 @@ class UserController extends Controller
                 ], 403);
             }
 
-            if (!$requestParam->filled('new_password')) {
+            // On vérifie la confirmation (déjà fait par la validation mais au cas où)
+            if (!$requestParam->filled('new_password_confirmation')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Veuillez saisir un nouveau mot de passe.',
+                    'message' => 'Veuillez confirmer le nouveau mot de passe.',
                 ], 422);
             }
 
-            $validatedData['password'] = Hash::make($requestParam->new_password);
+            $user->password = Hash::make($requestParam->new_password);
         }
 
         // 7. Mise à jour (On enlève les champs password de $validatedData s'ils ne sont pas traités)
